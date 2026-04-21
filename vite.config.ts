@@ -5,9 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // ДОБАВЛЯЕМ ЭТУ СТРОКУ: Базовый путь с именем вашего репозитория
-  base: "/turkmen-ai-chat/",
-  
   server: {
     host: "::",
     port: 8080,
