@@ -5,6 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // УМНЫЙ ПУТЬ: локально будет "/", а на GitHub "/turkmen-ai-chat/"
+  base: mode === "production" ? "/turkmen-ai-chat/" : "/",
+  
   server: {
     host: "::",
     port: 8080,
