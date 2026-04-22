@@ -53,7 +53,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         </button>
       </div>
       <p className="text-center text-xs text-muted-foreground mt-2">
-        Shift+Enter — täze setir. Enter — ibermek.
+        Made by: Resul_Sopyyev; CEO of "Sopyyev Software"
       </p>
     </div>
   );
