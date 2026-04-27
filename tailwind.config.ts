@@ -13,6 +13,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["'Playfair Display'", "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -23,6 +24,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          glow: "hsl(var(--primary-glow))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -48,6 +50,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        carpet: {
+          DEFAULT: "hsl(var(--carpet-red))",
+          foreground: "hsl(var(--carpet-red-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -71,8 +77,8 @@ export default {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
       },
       keyframes: {
         "accordion-down": {
@@ -87,11 +93,26 @@ export default {
           "0%, 80%, 100%": { opacity: "0.3", transform: "scale(0.8)" },
           "40%": { opacity: "1", transform: "scale(1)" },
         },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        glow: {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(var(--accent) / 0.3)" },
+          "50%": { boxShadow: "0 0 40px hsl(var(--accent) / 0.6)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-dot": "pulse-dot 1.4s infinite ease-in-out",
+        "fade-in-up": "fade-in-up 0.4s ease-out",
+        shimmer: "shimmer 3s linear infinite",
+        glow: "glow 2.5s ease-in-out infinite",
       },
     },
   },
