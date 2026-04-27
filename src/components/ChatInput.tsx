@@ -30,18 +30,15 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "tr-TR"; // ближайший к туркменскому
+    recognition.lang = "tr-TR";
 
     recognition.onresult = (event: any) => {
       let finalTranscript = "";
       let interimTranscript = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += transcript;
+        else interimTranscript += transcript;
       }
       const combined = (baseTextRef.current + " " + finalTranscript + interimTranscript).trim();
       setInput(combined);
@@ -55,9 +52,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
     recognitionRef.current = recognition;
     return () => {
-      try {
-        recognition.stop();
-      } catch {}
+      try { recognition.stop(); } catch {}
     };
   }, []);
 
@@ -97,46 +92,48 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   };
 
   return (
-    <div className="border-t border-border bg-background p-4 md:px-8">
-      <div className="max-w-3xl mx-auto relative">
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            baseTextRef.current = e.target.value;
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={isListening ? "Diňleýär..." : "Habaryňyzy ýazyň..."}
-          rows={1}
-          className="w-full resize-none bg-secondary text-foreground rounded-xl px-4 py-3 pr-24 outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground scrollbar-thin text-sm"
-          disabled={isLoading}
-        />
-        {speechSupported && (
-          <button
-            onClick={toggleListening}
+    <div className="glass border-t border-accent/20 p-4 md:px-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="relative rounded-2xl bg-secondary/60 backdrop-blur-md border border-border/60 focus-within:border-accent/60 focus-within:shadow-glow transition-all">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              baseTextRef.current = e.target.value;
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={isListening ? "Diňleýär..." : "Habaryňyzy ýazyň..."}
+            rows={1}
+            className="w-full resize-none bg-transparent text-foreground rounded-2xl px-4 py-3.5 pr-24 outline-none placeholder:text-muted-foreground scrollbar-thin text-sm"
             disabled={isLoading}
-            title={isListening ? "Sesi togtat" : "Ses bilen ýazmak"}
-            className={`absolute right-12 bottom-2 p-2 rounded-lg transition-colors ${
-              isListening
-                ? "bg-destructive text-destructive-foreground animate-pulse"
-                : "bg-secondary-foreground/10 text-foreground hover:bg-secondary-foreground/20"
-            }`}
+          />
+          {speechSupported && (
+            <button
+              onClick={toggleListening}
+              disabled={isLoading}
+              title={isListening ? "Sesi togtat" : "Ses bilen ýazmak"}
+              className={`absolute right-12 bottom-2 p-2 rounded-xl transition-all ${
+                isListening
+                  ? "bg-carpet text-carpet-foreground animate-pulse"
+                  : "bg-background/60 text-muted-foreground hover:text-accent hover:bg-accent/10"
+              }`}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={!input.trim() || isLoading}
+            className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-primary text-primary-foreground disabled:opacity-40 disabled:hover:shadow-none hover:shadow-emerald transition-all"
           >
-            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            <Send size={16} />
           </button>
-        )}
-        <button
-          onClick={handleSubmit}
-          disabled={!input.trim() || isLoading}
-          className="absolute right-2 bottom-2 p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
-        >
-          <Send size={16} />
-        </button>
+        </div>
+        <p className="text-center text-[11px] text-muted-foreground mt-2.5 tracking-wide">
+          Made by <span className="text-accent">Resul Sopyyev</span> · CEO of <span className="text-accent">Sopyyev Software</span>
+        </p>
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-2">
-        Made by: Resul_Sopyyev; CEO of "Sopyyev Software"
-      </p>
     </div>
   );
 }

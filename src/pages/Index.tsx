@@ -5,6 +5,8 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { EmptyChat } from "@/components/EmptyChat";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { TurkmenLogo } from "@/components/TurkmenLogo";
 import { useChat } from "@/hooks/useChat";
 
 const Index = () => {
@@ -44,21 +46,30 @@ const Index = () => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/80 backdrop-blur-sm">
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        <header className="relative z-10 flex items-center gap-3 px-4 py-3 border-b border-accent/20 glass">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-secondary transition-colors md:hidden"
+            className="p-2 rounded-lg hover:bg-secondary transition-colors md:hidden text-foreground"
           >
             <Menu size={20} />
           </button>
-          <h1 className="text-sm font-medium text-foreground truncate">
-            {activeChat?.title || "Turkmen AI Chat"}
-          </h1>
+
+          <div className="md:hidden">
+            <TurkmenLogo size="sm" showText={false} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-sm font-medium text-foreground truncate">
+              {activeChat?.title || (
+                <span className="text-muted-foreground italic">Täze söhbet</span>
+              )}
+            </h1>
+          </div>
+
+          <ThemeToggle />
         </header>
 
-        {/* Messages */}
         {!activeChat || activeChat.messages.length === 0 ? (
           <EmptyChat onSend={sendMessage} />
         ) : (
