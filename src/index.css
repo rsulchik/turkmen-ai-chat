@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,88 +6,135 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
-    --card: 0 0% 98%;
-    --card-foreground: 220 15% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 15% 25%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 160 60% 95%;
-    --accent-foreground: 160 84% 25%;
-    --destructive: 0 84% 60%;
+    /* Light: тёплый молочный + изумруд + золото + бордовый */
+    --background: 38 30% 97%;
+    --foreground: 160 25% 12%;
+    --card: 38 30% 99%;
+    --card-foreground: 160 25% 12%;
+    --popover: 38 30% 99%;
+    --popover-foreground: 160 25% 12%;
+
+    --primary: 158 75% 32%;
+    --primary-foreground: 38 30% 98%;
+    --primary-glow: 158 70% 48%;
+
+    --secondary: 38 25% 92%;
+    --secondary-foreground: 160 25% 18%;
+
+    --muted: 38 20% 93%;
+    --muted-foreground: 160 10% 38%;
+
+    --accent: 38 85% 52%;
+    --accent-foreground: 160 30% 12%;
+
+    --carpet-red: 350 70% 38%;
+    --carpet-red-foreground: 38 30% 98%;
+
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 160 84% 39%;
-    --radius: 0.75rem;
 
-    --sidebar-bg: 220 16% 96%;
-    --sidebar-fg: 220 15% 25%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-hover: 220 14% 92%;
-    --sidebar-active: 160 60% 95%;
-    --sidebar-active-fg: 160 84% 25%;
+    --border: 38 25% 86%;
+    --input: 38 25% 88%;
+    --ring: 158 75% 32%;
+    --radius: 1rem;
 
-    --chat-user: 160 60% 95%;
-    --chat-user-fg: 160 84% 20%;
-    --chat-ai: 220 14% 96%;
-    --chat-ai-fg: 220 15% 15%;
+    /* Sidebar */
+    --sidebar-bg: 38 28% 95%;
+    --sidebar-fg: 160 20% 18%;
+    --sidebar-border: 38 30% 82%;
+    --sidebar-hover: 38 35% 90%;
+    --sidebar-active: 158 50% 88%;
+    --sidebar-active-fg: 158 80% 22%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Chat */
+    --chat-user: 158 60% 92%;
+    --chat-user-fg: 158 80% 18%;
+    --chat-ai: 38 25% 96%;
+    --chat-ai-fg: 160 25% 14%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(158 75% 32%), hsl(158 70% 48%));
+    --gradient-gold: linear-gradient(135deg, hsl(38 85% 52%), hsl(42 95% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(158 75% 32% / 0.08), hsl(38 85% 52% / 0.08), hsl(350 70% 38% / 0.06));
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(38 85% 52% / 0.25);
+    --shadow-elegant: 0 10px 40px -10px hsl(160 30% 20% / 0.18);
+    --shadow-emerald: 0 8px 30px -8px hsl(158 75% 32% / 0.35);
+
+    /* Карпет-паттерн (göl) — субтильный SVG */
+    --carpet-pattern: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23158a4f' stroke-width='1' stroke-opacity='0.5'><path d='M40 8 L72 40 L40 72 L8 40 Z'/><path d='M40 20 L60 40 L40 60 L20 40 Z'/><circle cx='40' cy='40' r='4'/><path d='M40 28 L52 40 L40 52 L28 40 Z' stroke='%23c9961f' stroke-opacity='0.6'/></g></svg>");
+
+    /* shadcn sidebar (на всякий) */
+    --sidebar-background: 38 28% 95%;
+    --sidebar-foreground: 160 20% 20%;
+    --sidebar-primary: 158 75% 32%;
+    --sidebar-primary-foreground: 38 30% 98%;
+    --sidebar-accent: 38 35% 90%;
+    --sidebar-accent-foreground: 160 25% 18%;
+    --sidebar-ring: 158 75% 32%;
   }
 
   .dark {
-    --background: 220 16% 8%;
-    --foreground: 220 14% 90%;
-    --card: 220 16% 11%;
-    --card-foreground: 220 14% 90%;
-    --popover: 220 16% 11%;
-    --popover-foreground: 220 14% 90%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 16% 15%;
-    --secondary-foreground: 220 14% 85%;
-    --muted: 220 16% 15%;
-    --muted-foreground: 220 9% 55%;
-    --accent: 160 40% 15%;
-    --accent-foreground: 160 60% 70%;
-    --destructive: 0 62% 30%;
+    --background: 160 25% 7%;
+    --foreground: 38 25% 92%;
+    --card: 160 22% 10%;
+    --card-foreground: 38 25% 92%;
+    --popover: 160 22% 10%;
+    --popover-foreground: 38 25% 92%;
+
+    --primary: 158 70% 48%;
+    --primary-foreground: 160 30% 8%;
+    --primary-glow: 158 80% 60%;
+
+    --secondary: 160 20% 14%;
+    --secondary-foreground: 38 25% 88%;
+
+    --muted: 160 20% 14%;
+    --muted-foreground: 38 15% 60%;
+
+    --accent: 42 90% 60%;
+    --accent-foreground: 160 30% 8%;
+
+    --carpet-red: 350 65% 48%;
+    --carpet-red-foreground: 38 25% 95%;
+
+    --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 18%;
-    --input: 220 16% 18%;
-    --ring: 160 84% 39%;
 
-    --sidebar-bg: 220 16% 10%;
-    --sidebar-fg: 220 14% 85%;
-    --sidebar-border: 220 16% 15%;
-    --sidebar-hover: 220 16% 14%;
-    --sidebar-active: 160 40% 15%;
-    --sidebar-active-fg: 160 60% 70%;
+    --border: 160 20% 18%;
+    --input: 160 20% 18%;
+    --ring: 158 70% 48%;
 
-    --chat-user: 160 40% 15%;
-    --chat-user-fg: 160 60% 85%;
-    --chat-ai: 220 16% 13%;
-    --chat-ai-fg: 220 14% 90%;
+    --sidebar-bg: 160 25% 8%;
+    --sidebar-fg: 38 25% 88%;
+    --sidebar-border: 160 25% 16%;
+    --sidebar-hover: 160 22% 13%;
+    --sidebar-active: 158 50% 18%;
+    --sidebar-active-fg: 42 90% 70%;
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --chat-user: 158 50% 16%;
+    --chat-user-fg: 158 60% 88%;
+    --chat-ai: 160 22% 11%;
+    --chat-ai-fg: 38 25% 92%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(158 70% 48%), hsl(158 80% 60%));
+    --gradient-gold: linear-gradient(135deg, hsl(42 90% 60%), hsl(38 95% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(158 70% 48% / 0.12), hsl(42 90% 60% / 0.10), hsl(350 65% 48% / 0.08));
+
+    --shadow-glow: 0 0 50px hsl(42 90% 60% / 0.30);
+    --shadow-elegant: 0 10px 40px -10px hsl(0 0% 0% / 0.5);
+    --shadow-emerald: 0 8px 30px -8px hsl(158 70% 48% / 0.45);
+
+    --carpet-pattern: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%2330c98a' stroke-width='1' stroke-opacity='0.5'><path d='M40 8 L72 40 L40 72 L8 40 Z'/><path d='M40 20 L60 40 L40 60 L20 40 Z'/><circle cx='40' cy='40' r='4'/><path d='M40 28 L52 40 L40 52 L28 40 Z' stroke='%23f0c14a' stroke-opacity='0.7'/></g></svg>");
+
+    --sidebar-background: 160 25% 8%;
+    --sidebar-foreground: 38 25% 88%;
+    --sidebar-primary: 158 70% 48%;
+    --sidebar-primary-foreground: 160 30% 8%;
+    --sidebar-accent: 160 22% 13%;
+    --sidebar-accent-foreground: 38 25% 88%;
+    --sidebar-ring: 158 70% 48%;
   }
 }
 
@@ -98,6 +145,9 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+  }
+  .font-display {
+    font-family: 'Playfair Display', serif;
   }
 }
 
@@ -112,7 +162,45 @@
     background: transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
+    background-color: hsl(var(--accent) / 0.4);
     border-radius: 3px;
+  }
+  .bg-carpet {
+    background-image: var(--carpet-pattern);
+    background-size: 80px 80px;
+  }
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+  .bg-gradient-gold {
+    background-image: var(--gradient-gold);
+  }
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+  .text-gradient-gold {
+    background-image: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .shadow-emerald {
+    box-shadow: var(--shadow-emerald);
+  }
+  .glass {
+    background-color: hsl(var(--background) / 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .glass-strong {
+    background-color: hsl(var(--card) / 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 }
