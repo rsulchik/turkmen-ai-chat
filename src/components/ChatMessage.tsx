@@ -2,6 +2,7 @@ import { Copy, Check, User, Bot } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
@@ -48,12 +49,57 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {isUser ? "Siz" : "Turkmen AI"}
         </div>
         <div className={cn(
-          "prose prose-sm max-w-none dark:prose-invert",
+          "prose prose-sm max-w-none dark:prose-invert break-words",
           "text-foreground prose-headings:text-foreground prose-headings:font-display",
-          "prose-strong:text-foreground prose-code:text-accent",
-          "prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+          "prose-strong:text-foreground prose-code:text-accent prose-code:before:content-none prose-code:after:content-none",
+          "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
+          "prose-blockquote:border-accent prose-blockquote:text-muted-foreground prose-blockquote:not-italic",
+          "prose-hr:border-accent/30",
+          "prose-li:marker:text-accent",
+          "prose-table:my-3"
         )}>
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code({ inline, className, children, ...props }: any) {
+                if (inline) {
+                  return (
+                    <code className="px-1.5 py-0.5 rounded bg-muted text-accent font-mono text-[0.85em]" {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <code className={cn("font-mono text-sm", className)} {...props}>
+                    {children}
+                  </code>
+                );
+              },
+              pre({ children }) {
+                return (
+                  <pre className="rounded-lg border border-accent/30 bg-muted/60 backdrop-blur-sm p-4 overflow-x-auto my-3">
+                    {children}
+                  </pre>
+                );
+              },
+              a({ href, children, ...props }) {
+                return (
+                  <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                    {children}
+                  </a>
+                );
+              },
+              table({ children }) {
+                return (
+                  <div className="overflow-x-auto my-3 rounded-lg border border-accent/20">
+                    <table className="min-w-full">{children}</table>
+                  </div>
+                );
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
         </div>
 
         {!isUser && message.content && (
