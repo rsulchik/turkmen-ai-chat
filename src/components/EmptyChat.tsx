@@ -54,6 +54,41 @@ export function EmptyChat({ onSend }: EmptyChatProps) {
             </button>
           ))}
         </div>
+
+        <div
+          className="mt-10 w-full max-w-2xl animate-fade-in-up"
+          style={{ animationDelay: "320ms" }}
+        >
+          <div className="relative rounded-2xl border border-accent/30 bg-card/40 backdrop-blur-md p-5 md:p-6 shadow-glow overflow-hidden">
+            <div className="absolute inset-0 bg-carpet-pattern opacity-[0.04] pointer-events-none" />
+            <div className="relative flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-sm">
+                <Quote size={18} className="text-accent-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">
+                    Halk pähimi
+                  </span>
+                  <button
+                    onClick={() => setProverb(getRandomProverb())}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-accent transition-colors px-2 py-1 rounded-md hover:bg-accent/10"
+                    aria-label="Başga pähim"
+                  >
+                    <RefreshCw size={12} />
+                    Täzele
+                  </button>
+                </div>
+                <p
+                  key={proverb.text}
+                  className="font-display text-base md:text-lg text-foreground/95 leading-snug italic animate-fade-in-up"
+                >
+                  «{proverb.text}»
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
