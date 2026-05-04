@@ -1,6 +1,8 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, Quote, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { TurkmenLogo } from "./TurkmenLogo";
 import { OrnamentBackground } from "./OrnamentBackground";
+import { getRandomProverb } from "@/data/proverbs";
 
 interface EmptyChatProps {
   onSend: (message: string) => void;
