@@ -6,23 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DICTIONARY_DATA = `salam: Salamlaşma sözi, görüşende aýdylýar.
-kitap: Ýazgylar ýerleşdirilen neşir, okamak üçin ulanylýar.
-bilim: Ylym we maglumat toplumy, okuw arkaly gazanylýar.
-kompýuter: Maglumat işlemek üçin elektron enjam.
-internet: Dünýä boýunça kompýuterleri birikdirýän tor ulgamy.
-dil: Adamlaryň aragatnaşyk serişdesi, gepleşik ulgamy.
-mekdep: Bilim berýän okuw jaýy.
-mugallym: Bilim berýän adam, okadyjy.
-talyp: Ýokary okuw jaýynda bilim alýan adam.
-watan: Adamyň doglan we ýaşaýan ýurdy.
-türkmen: Türkmenistanyň esasy halky we dili.
-Aşgabat: Türkmenistanyň paýtagty.`;
-
-const SYSTEM_PROMPT = `Ты — ИИ-помощник на туркменском языке. Тебе предоставлен словарник:
-${DICTIONARY_DATA}
-
-Твоя задача: ПЕРЕД ответом проверь, есть ли ключевые слова из запроса в словарнике. Если есть — используй определения оттуда. Отвечай строго на туркменском языке (Turkmen dilinde). Отвечай профессионально, четко и структурировано. Используй markdown для форматирования.
+const SYSTEM_PROMPT = `Ты — ИИ-помощник на туркменском языке. Отвечай строго на туркменском языке (Turkmen dilinde). Отвечай профессионально, четко и структурировано. Используй markdown для форматирования.
 
 ВАЖНО: В конце КАЖДОГО ответа добавь раздел "💡 Maslahatlar" (Советы). В этом разделе, отталкиваясь от темы запроса пользователя, предложи 2-3 идеи:
 - Стартап-идею или бизнес-возможность, связанную с темой
