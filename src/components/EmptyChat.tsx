@@ -16,8 +16,10 @@ const suggestions = [
 ];
 
 export function EmptyChat({ onSend }: EmptyChatProps) {
+  const [proverb, setProverb] = useState(() => getRandomProverb());
+
   return (
-    <div className="relative flex-1 flex flex-col items-center justify-center px-4 overflow-hidden bg-gradient-hero">
+    <div className="relative flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-hidden bg-gradient-hero">
       <OrnamentBackground opacity={0.07} />
 
       <div className="relative flex flex-col items-center animate-fade-in-up">
