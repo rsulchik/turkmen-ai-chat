@@ -2,6 +2,7 @@ import { Copy, Check, User, Bot } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
