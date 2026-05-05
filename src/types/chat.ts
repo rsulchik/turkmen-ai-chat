@@ -3,6 +3,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  images?: string[]; // data URLs of attached images (user messages)
 }
 
 export interface Chat {
@@ -11,4 +12,5 @@ export interface Chat {
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
+  personaId?: string;
 }

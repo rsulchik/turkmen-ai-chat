@@ -1,15 +1,32 @@
 import { useState, useCallback } from "react";
 import { Chat, Message } from "@/types/chat";
-import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_PERSONA_ID } from "@/data/personas";
 
 function generateId() {
   return crypto.randomUUID();
+}
+
+const PERSONA_KEY = "turkmen-ai:persona";
+
+function loadPersona(): string {
+  if (typeof window === "undefined") return DEFAULT_PERSONA_ID;
+  return localStorage.getItem(PERSONA_KEY) || DEFAULT_PERSONA_ID;
 }
 
 export function useChat() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [personaId, setPersonaIdState] = useState<string>(loadPersona);
+
+  const setPersonaId = useCallback((id: string) => {
+    setPersonaIdState(id);
+    try { localStorage.setItem(PERSONA_KEY, id); } catch {}
+    // also bind to active chat if it exists and has no messages yet
+    setChats((prev) => prev.map((c) =>
+      c.id === activeChatId && c.messages.length === 0 ? { ...c, personaId: id } : c
+    ));
+  }, [activeChatId]);
 
   const activeChat = chats.find((c) => c.id === activeChatId) || null;
 
@@ -20,11 +37,12 @@ export function useChat() {
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      personaId,
     };
     setChats((prev) => [newChat, ...prev]);
     setActiveChatId(newChat.id);
     return newChat.id;
-  }, []);
+  }, [personaId]);
 
   const deleteChat = useCallback(
     (chatId: string) => {
@@ -37,7 +55,7 @@ export function useChat() {
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, images?: string[]) => {
       let chatId = activeChatId;
       if (!chatId) {
         chatId = createChat();
@@ -48,6 +66,7 @@ export function useChat() {
         role: "user",
         content,
         timestamp: new Date(),
+        images: images && images.length ? images : undefined,
       };
 
       setChats((prev) =>
@@ -60,6 +79,7 @@ export function useChat() {
           };
           if (c.messages.length === 0) {
             updated.title = content.slice(0, 40) + (content.length > 40 ? "..." : "");
+            if (!updated.personaId) updated.personaId = personaId;
           }
           return updated;
         })
@@ -69,13 +89,38 @@ export function useChat() {
 
       try {
         const currentChat = chats.find((c) => c.id === chatId);
-        const allMessages = [
-          ...(currentChat?.messages || []).map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content,
-          })),
-          { role: "user" as const, content },
-        ];
+        const chatPersona = currentChat?.personaId || personaId;
+
+        // Build multimodal-aware history
+        const history = (currentChat?.messages || []).map((m) => {
+          if (m.role === "user" && m.images && m.images.length) {
+            const parts: any[] = m.images.map((url) => ({
+              type: "image_url",
+              image_url: { url },
+            }));
+            if (m.content) parts.unshift({ type: "text", text: m.content });
+            return { role: "user", content: parts };
+          }
+          return { role: m.role, content: m.content };
+        });
+
+        let newUserPayload: any;
+        if (images && images.length) {
+          const parts: any[] = images.map((url) => ({
+            type: "image_url",
+            image_url: { url },
+          }));
+          if (content) parts.unshift({ type: "text", text: content });
+          newUserPayload = { role: "user", content: parts };
+        } else {
+          newUserPayload = { role: "user", content };
+        }
+
+        const allMessages = [...history, newUserPayload];
+
+        const hasImages = allMessages.some(
+          (m) => Array.isArray(m.content) && m.content.some((p: any) => p.type === "image_url")
+        );
 
         const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/turkmen-chat`;
 
@@ -85,7 +130,7 @@ export function useChat() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ messages: allMessages }),
+          body: JSON.stringify({ messages: allMessages, personaId: chatPersona, hasImages }),
         });
 
         if (!resp.ok || !resp.body) {
@@ -100,7 +145,6 @@ export function useChat() {
         let assistantContent = "";
         const assistantId = generateId();
 
-        // Add empty assistant message
         setChats((prev) =>
           prev.map((c) =>
             c.id === chatId
@@ -177,7 +221,7 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [activeChatId, chats, createChat]
+    [activeChatId, chats, createChat, personaId]
   );
 
   return {
@@ -185,6 +229,8 @@ export function useChat() {
     activeChat,
     activeChatId,
     isLoading,
+    personaId,
+    setPersonaId,
     createChat,
     deleteChat,
     setActiveChatId,

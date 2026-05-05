@@ -3,9 +3,13 @@ import { useState } from "react";
 import { TurkmenLogo } from "./TurkmenLogo";
 import { OrnamentBackground } from "./OrnamentBackground";
 import { getRandomProverb } from "@/data/proverbs";
+import { PERSONAS } from "@/data/personas";
+import { cn } from "@/lib/utils";
 
 interface EmptyChatProps {
   onSend: (message: string) => void;
+  personaId: string;
+  onPersonaChange: (id: string) => void;
 }
 
 const suggestions = [
@@ -15,15 +19,15 @@ const suggestions = [
   "Garagum çöli barada maglumat ber",
 ];
 
-export function EmptyChat({ onSend }: EmptyChatProps) {
+export function EmptyChat({ onSend, personaId, onPersonaChange }: EmptyChatProps) {
   const [proverb, setProverb] = useState(() => getRandomProverb());
 
   return (
-    <div className="relative flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-hidden bg-gradient-hero">
+    <div className="relative flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto bg-gradient-hero">
       <OrnamentBackground opacity={0.07} />
 
-      <div className="relative flex flex-col items-center animate-fade-in-up">
-        <div className="mb-8">
+      <div className="relative flex flex-col items-center animate-fade-in-up w-full">
+        <div className="mb-6">
           <TurkmenLogo size="lg" />
         </div>
 
@@ -35,11 +39,42 @@ export function EmptyChat({ onSend }: EmptyChatProps) {
           <span className="h-px w-8 bg-gradient-to-l from-transparent to-accent" />
         </div>
 
-        <p className="text-muted-foreground text-sm md:text-base mb-10 text-center max-w-md leading-relaxed">
+        <p className="text-muted-foreground text-sm md:text-base mb-8 text-center max-w-md leading-relaxed">
           Türkmen dilinde professional ýardamçy.
           <br />
-          Sorag beriň — düşnükli we anyk jogap alyň.
+          Personajy saýlaň we sorag beriň.
         </p>
+
+        {/* Personas */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl w-full mb-8">
+          {PERSONAS.map((p) => {
+            const Icon = p.icon;
+            const active = p.id === personaId;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onPersonaChange(p.id)}
+                className={cn(
+                  "group flex items-center gap-2 p-3 rounded-xl border backdrop-blur-sm transition-all text-left",
+                  active
+                    ? "border-accent bg-accent/10 shadow-glow"
+                    : "border-border/60 bg-card/40 hover:border-accent/60 hover:bg-card/70"
+                )}
+              >
+                <div className={cn(
+                  "shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                  active ? "bg-gradient-gold text-accent-foreground" : "bg-secondary text-accent"
+                )}>
+                  <Icon size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-foreground truncate">{p.name}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">{p.tagline}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full">
           {suggestions.map((s, idx) => (
@@ -56,7 +91,7 @@ export function EmptyChat({ onSend }: EmptyChatProps) {
         </div>
 
         <div
-          className="mt-10 w-full max-w-2xl animate-fade-in-up"
+          className="mt-8 w-full max-w-2xl animate-fade-in-up"
           style={{ animationDelay: "320ms" }}
         >
           <div className="relative rounded-2xl border border-accent/30 bg-card/40 backdrop-blur-md p-5 md:p-6 shadow-glow overflow-hidden">

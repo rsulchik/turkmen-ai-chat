@@ -1,16 +1,30 @@
-import { Send, Mic, MicOff } from "lucide-react";
+import { Send, Mic, MicOff, Paperclip, X } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, images?: string[]) => void;
   isLoading: boolean;
+}
+
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const baseTextRef = useRef<string>("");
 
@@ -72,15 +86,31 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     }
   };
 
+  const handleFiles = async (files: FileList | File[]) => {
+    const file = Array.from(files).find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast({ title: "Surat aşa uly", description: "Maksimum 4 MB.", variant: "destructive" });
+      return;
+    }
+    try {
+      const url = await fileToDataUrl(file);
+      setImages([url]);
+    } catch {
+      toast({ title: "Suraty ýükläp bolmady", variant: "destructive" });
+    }
+  };
+
   const handleSubmit = () => {
     const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
+    if ((!trimmed && images.length === 0) || isLoading) return;
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
     }
-    onSend(trimmed);
+    onSend(trimmed || (images.length ? "Bu suraty türkmençe düşündir." : ""), images);
     setInput("");
+    setImages([]);
     baseTextRef.current = "";
   };
 
@@ -92,9 +122,37 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   };
 
   return (
-    <div className="glass border-t border-accent/20 p-4 md:px-8">
+    <div
+      className="glass border-t border-accent/20 p-4 md:px-8"
+      onDragOver={(e) => { e.preventDefault(); }}
+      onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files) handleFiles(e.dataTransfer.files); }}
+    >
       <div className="max-w-3xl mx-auto">
+        {images.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {images.map((src, i) => (
+              <div key={i} className="relative group">
+                <img src={src} alt="surat" className="h-20 w-20 object-cover rounded-lg border border-accent/30" />
+                <button
+                  onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground shadow-md hover:scale-110 transition-transform"
+                  aria-label="Aýyr"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="relative rounded-2xl bg-secondary/60 backdrop-blur-md border border-border/60 focus-within:border-accent/60 focus-within:shadow-glow transition-all">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
+          />
           <textarea
             ref={textareaRef}
             value={input}
@@ -103,11 +161,19 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               baseTextRef.current = e.target.value;
             }}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Diňleýär..." : "Habaryňyzy ýazyň..."}
+            placeholder={isListening ? "Diňleýär..." : "Habaryňyzy ýazyň ýa-da surat goşuň..."}
             rows={1}
-            className="w-full resize-none bg-transparent text-foreground rounded-2xl px-4 py-3.5 pr-24 outline-none placeholder:text-muted-foreground scrollbar-thin text-sm"
+            className="w-full resize-none bg-transparent text-foreground rounded-2xl pl-12 pr-24 py-3.5 outline-none placeholder:text-muted-foreground scrollbar-thin text-sm"
             disabled={isLoading}
           />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            title="Surat goşmak"
+            className="absolute left-2 bottom-2 p-2 rounded-xl bg-background/60 text-muted-foreground hover:text-accent hover:bg-accent/10 transition-all"
+          >
+            <Paperclip size={16} />
+          </button>
           {speechSupported && (
             <button
               onClick={toggleListening}
@@ -124,7 +190,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           )}
           <button
             onClick={handleSubmit}
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && images.length === 0) || isLoading}
             className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-primary text-primary-foreground disabled:opacity-40 disabled:hover:shadow-none hover:shadow-emerald transition-all"
           >
             <Send size={16} />

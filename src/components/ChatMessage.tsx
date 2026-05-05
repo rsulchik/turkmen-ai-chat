@@ -48,6 +48,19 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}>
           {isUser ? "Siz" : "Turkmen AI"}
         </div>
+        {isUser && message.images && message.images.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {message.images.map((src, i) => (
+              <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={src}
+                  alt="goşulan surat"
+                  className="max-w-[280px] max-h-[280px] rounded-lg border border-accent/30 object-cover hover:opacity-90 transition-opacity"
+                />
+              </a>
+            ))}
+          </div>
+        )}
         <div className={cn(
           "prose prose-sm max-w-none dark:prose-invert break-words",
           "text-foreground prose-headings:text-foreground prose-headings:font-display",
