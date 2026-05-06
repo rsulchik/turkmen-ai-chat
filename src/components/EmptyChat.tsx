@@ -76,20 +76,6 @@ export function EmptyChat({ onSend, personaId, onPersonaChange }: EmptyChatProps
           })}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full">
-          {suggestions.map((s, idx) => (
-            <button
-              key={s}
-              onClick={() => onSend(s)}
-              style={{ animationDelay: `${idx * 80}ms` }}
-              className="group/card animate-fade-in-up flex items-start gap-2.5 p-4 rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm hover:border-accent/60 hover:bg-card/80 hover:shadow-glow transition-all text-left text-sm"
-            >
-              <Sparkles size={16} className="text-accent mt-0.5 shrink-0 group-hover/card:scale-110 transition-transform" />
-              <span className="text-foreground/90 group-hover/card:text-foreground">{s}</span>
-            </button>
-          ))}
-        </div>
-
         <div
           className="mt-8 w-full max-w-2xl animate-fade-in-up"
           style={{ animationDelay: "320ms" }}
