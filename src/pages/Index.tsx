@@ -88,12 +88,12 @@ const Index = () => {
         <header className="relative z-10 flex items-center gap-2 px-4 py-3 border-b border-accent/20 glass">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-secondary transition-colors md:hidden text-foreground"
+            className="p-2 rounded-lg hover:bg-secondary transition-colors lg:hidden text-foreground"
           >
             <Menu size={20} />
           </button>
 
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <TurkmenLogo size="sm" showText={false} />
           </div>
 

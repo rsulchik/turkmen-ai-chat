@@ -27,17 +27,17 @@ export function ChatSidebar({
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={cn(
-          "fixed md:relative z-50 md:z-auto flex flex-col h-full w-72 transition-transform duration-300 ease-in-out",
+          "fixed lg:relative z-50 lg:z-auto flex flex-col h-full w-72 transition-transform duration-300 ease-in-out",
           "glass-strong border-r border-accent/20",
           "before:absolute before:right-0 before:top-0 before:bottom-0 before:w-px before:bg-gradient-to-b before:from-transparent before:via-accent/40 before:to-transparent",
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <OrnamentBackground opacity={0.04} />
@@ -54,7 +54,7 @@ export function ChatSidebar({
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-sidebar-hover transition-colors text-sidebar-fg md:hidden"
+              className="p-2 rounded-lg hover:bg-sidebar-hover transition-colors text-sidebar-fg lg:hidden"
             >
               <X size={18} />
             </button>

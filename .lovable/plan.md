@@ -1,131 +1,69 @@
-# План: Шаринг чатов, Персоны AI, Загрузка изображений
+## Что меняем
 
-Реализуем три фичи: **#15 публичная ссылка на чат**, **#20 системные роли (персоны)**, **#21 multimodal — загрузка изображений**.
+### 1. Sidebar — drawer на мобильных и планшетах
 
----
+Сейчас sidebar становится постоянной панелью уже с `md:` (768px) — это слишком рано для устройств вроде iPad. Переключаем брейкпоинт на `lg:` (1024px), чтобы на телефонах **и** планшетах sidebar открывался drawer-ом с overlay, а постоянная панель появлялась только на десктопе.
 
-## 1. Персоны AI (#20) — самое простое, начнём с этого
+**Файлы:**
+- `src/components/ChatSidebar.tsx` — заменить все `md:` → `lg:` (классы `md:relative`, `md:z-auto`, `md:translate-x-0`, `md:hidden`, `hidden md:` и т.п.).
+- `src/pages/Index.tsx` — заменить `md:hidden` на `lg:hidden` у кнопки `Menu` и мобильного логотипа в header.
 
-Пользователь выбирает «роль» AI перед или во время разговора. Каждая роль — свой системный промпт.
-
-**Персоны (на туркменском колорите):**
-- **Kömekçi** (универсальный помощник) — по умолчанию
-- **Mugallym** (учитель) — объясняет простыми словами, даёт примеры
-- **Aşpez** (повар) — рецепты туркменской и мировой кухни
-- **Taryhçy** (историк) — Туркменистан, Великий шёлковый путь, культура
-- **Şahyr** (поэт) — пишет стихи, помогает с творчеством
-- **Programmist** (программист) — код, архитектура, объяснения
-
-**UI:**
-- Дропдаун с иконкой персоны в `header` (рядом с `ThemeToggle`)
-- На пустом чате (`EmptyChat`) — карточки персон вверху, клик меняет активную
-- Активная персона отображается тонким лейблом под заголовком чата
-- Выбор сохраняется в `localStorage` глобально + привязывается к чату при создании
-
-**Технически:**
-- Новый файл `src/data/personas.ts` — массив `{id, name, icon, description, systemPrompt}`
-- В `Chat` тип добавить `personaId?: string`
-- В `useChat.sendMessage` передавать `personaId` в edge function
-- `supabase/functions/turkmen-chat/index.ts` принимает `personaId`, выбирает соответствующий системный промпт (общая база + специфика роли). Базовый блок «отвечай на туркменском + Maslahatlar в конце» сохраняется для всех
+Логика drawer уже корректна (overlay + transition + body scroll), нужно только сдвинуть точку.
 
 ---
 
-## 2. Загрузка изображений (#21) — multimodal
+### 2. Rate limiting на edge function
 
-Пользователь прикрепляет фото к сообщению, AI его «видит» и отвечает по-туркменски.
+Поскольку edge-функции stateless и могут холодно стартовать, in-memory Map ненадёжен. Используем **таблицу в Lovable Cloud** для хранения счётчиков по IP.
 
-**Use-cases:**
-- Распознать туркменский текст с вывески/документа
-- Описать ковёр, орнамент, блюдо
-- Помочь с домашней работой по фото
+**Лимиты (предлагаю):**
+- 15 сообщений за 5 минут на IP
+- 100 сообщений за 24 часа на IP
 
-**UI в `ChatInput`:**
-- Кнопка-скрепка `Paperclip` слева от поля ввода
-- При клике — file picker (`accept="image/*"`, max 4MB)
-- Превью прикреплённой картинки над textarea с кнопкой ✕
-- Drag & drop в зону ввода
+При превышении — `429` с понятным сообщением на туркменском в чат: «Köp haýyş iberildi, biraz garaşyň» (уже обрабатывается в `useChat`).
 
-**В сообщении (`ChatMessage`):**
-- Если у user-сообщения есть `imageUrl` — рендерить картинку над текстом (rounded, max-w 320px, lightbox по клику опционально)
-
-**Технически:**
-- Картинку конвертируем в base64 data URL на клиенте (без отдельного хранилища — для MVP)
-- Тип `Message` расширяем: `images?: string[]` (массив data URL)
-- `useChat.sendMessage(content, images?)` — формирует контент в формате Gemini multimodal:
-  ```
-  { role: "user", content: [
-    { type: "text", text: "..." },
-    { type: "image_url", image_url: { url: "data:image/jpeg;base64,..." } }
-  ]}
-  ```
-- Edge function: модель меняем на `google/gemini-2.5-flash` (поддерживает vision; текущий `gemini-3-flash-preview` — это `gemini-3.1-flash-image-preview`-семейство, лучше переключить на стабильную `2.5-flash` для multimodal-чата)
-- В истории чата картинки храним только в текущей сессии; для сохранённой истории base64 не отправляем повторно (или отправляем — обсудимо, по умолчанию: да, отправляем — иначе AI «забудет» картинку)
-
-**Ограничения, о которых сообщим в UI:**
-- Максимум 1 картинка на сообщение (для MVP)
-- До 4 МБ
-- Только jpg/png/webp
-
----
-
-## 3. Шаринг чата по публичной ссылке (#15)
-
-Кнопка «Paýlaş» (Поделиться) копирует ссылку вида `/share/<token>` — любой по ней видит read-only версию диалога.
-
-**Backend (Lovable Cloud):**
-
-Таблица `shared_chats`:
-```
-id           uuid PK default gen_random_uuid()
-share_token  text unique not null  -- короткий случайный токен в URL
-title        text not null
-messages     jsonb not null         -- снимок: [{role, content, images?}]
-created_at   timestamptz default now()
+**Миграция:** новая таблица
+```sql
+create table public.chat_rate_limits (
+  ip text not null,
+  window_start timestamptz not null default now(),
+  count int not null default 0,
+  primary key (ip)
+);
+alter table public.chat_rate_limits enable row level security;
+-- Доступ только через service role из edge function;
+-- никаких публичных policies не создаём (RLS блокирует анон-доступ).
 ```
 
-**RLS:**
-- `SELECT` для `anon, authenticated` через `share_token` — публичный доступ к снимкам
-- `INSERT` для `anon, authenticated` — любой может создать снимок (rate limit реалистично не нужен для MVP)
-- `UPDATE`/`DELETE` — запрещены (read-only снимки)
+**Edge function (`supabase/functions/turkmen-chat/index.ts`):**
+- В начале handler: достаём IP из `x-forwarded-for` (первый адрес) или `cf-connecting-ip`.
+- Создаём `supabase` клиент с `SUPABASE_SERVICE_ROLE_KEY` (секрет уже есть).
+- Логика sliding-window по IP:
+  - Читаем строку для IP.
+  - Если `now() - window_start > 5 минут` → сбрасываем `count=1, window_start=now()`.
+  - Иначе если `count >= 15` → возвращаем `429`.
+  - Иначе `count++` и upsert.
+- Дополнительно: считаем суточный счётчик отдельным запросом (можно второй колонкой `daily_count` + `daily_window_start`).
 
-Так как авторизации в проекте нет, делаем чистый snapshot-подход: при шаринге сохраняем копию чата. Изменения в исходном чате не влияют на ссылку.
+Чтобы не плодить таблицы, расширяем схему:
+```sql
+create table public.chat_rate_limits (
+  ip text primary key,
+  short_window_start timestamptz not null default now(),
+  short_count int not null default 0,
+  long_window_start timestamptz not null default now(),
+  long_count int not null default 0
+);
+```
 
-**Frontend:**
-- Кнопка `Share2` в шапке (рядом с `ThemeToggle`), активна только когда есть `activeChat` с сообщениями
-- Клик → insert в `shared_chats`, получаем `share_token`, копируем `${origin}${BASE_URL}share/${token}` в буфер, показываем toast «Salgy göçürildi»
-- Новый роут `/share/:token` → компонент `SharedChat.tsx`:
-  - Загружает по токену, рендерит `ChatMessage` в режиме read-only
-  - Если не найдено → 404-state на туркменском
-  - Шапка с лого + кнопка «Täze söhbet başla» (ведёт на `/` и создаёт новый чат)
-- Прячем sidebar и input на shared-странице
+**Заметка:** у Lovable Cloud пока нет специализированных rate-limit примитивов, поэтому это ad-hoc реализация. Для серьёзной защиты от ботов в будущем понадобится Cloudflare или подобное на уровне инфры. Сейчас этого достаточно, чтобы аноним не выжег весь AI-кредит за минуты.
 
 ---
 
-## Технические детали и порядок работ
+## Порядок работ
 
-**Файлы и изменения:**
+1. Применить миграцию `chat_rate_limits`.
+2. Обновить `turkmen-chat/index.ts`: добавить проверку IP перед вызовом AI gateway.
+3. Заменить `md:` → `lg:` в `ChatSidebar.tsx` и `Index.tsx`.
 
-```text
-[create] src/data/personas.ts
-[create] src/pages/SharedChat.tsx
-[edit]   src/types/chat.ts            — добавить images?, personaId?
-[edit]   src/hooks/useChat.ts         — поддержка images, personaId
-[edit]   src/components/ChatInput.tsx — attach button, превью изображения
-[edit]   src/components/ChatMessage.tsx — рендер images
-[edit]   src/components/EmptyChat.tsx — карточки персон сверху
-[edit]   src/pages/Index.tsx          — селектор персоны, кнопка Share, передача personaId
-[edit]   src/App.tsx                  — роут /share/:token
-[edit]   supabase/functions/turkmen-chat/index.ts — personaId → system prompt; модель 2.5-flash для vision
-[migration] create table shared_chats + RLS
-```
-
-**Зависимости:** новых пакетов не нужно.
-
-**Порядок реализации (commit-by-commit):**
-1. Персоны (UI + edge function)
-2. Загрузка изображений (UI + multimodal в edge function, переключение модели на `gemini-2.5-flash`)
-3. Шаринг (миграция + кнопка + страница `/share/:token`)
-
-**Открытый вопрос:** в shared-снимке хранить картинки (base64) или вырезать их для уменьшения размера? Предлагаю **хранить** — иначе шаринг multimodal-разговоров теряет смысл. Если размер станет проблемой, позже добавим Storage bucket и будем грузить URL.
-
-После одобрения переключусь в build-режим и реализую всё последовательно.
+Без новых зависимостей. После одобрения — переключаюсь в build-режим.

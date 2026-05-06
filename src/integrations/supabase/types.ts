@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_rate_limits: {
+        Row: {
+          ip: string
+          long_count: number
+          long_window_start: string
+          short_count: number
+          short_window_start: string
+          updated_at: string
+        }
+        Insert: {
+          ip: string
+          long_count?: number
+          long_window_start?: string
+          short_count?: number
+          short_window_start?: string
+          updated_at?: string
+        }
+        Update: {
+          ip?: string
+          long_count?: number
+          long_window_start?: string
+          short_count?: number
+          short_window_start?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shared_chats: {
         Row: {
           created_at: string
