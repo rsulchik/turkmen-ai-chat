@@ -1,4 +1,4 @@
-import { Sparkles, Quote, RefreshCw } from "lucide-react";
+import { Quote, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { TurkmenLogo } from "./TurkmenLogo";
 import { OrnamentBackground } from "./OrnamentBackground";
@@ -11,13 +11,6 @@ interface EmptyChatProps {
   personaId: string;
   onPersonaChange: (id: string) => void;
 }
-
-const suggestions = [
-  "Türkmenistanyň paýtagty haýsy?",
-  "Magtymguly barada gürrüň ber",
-  "Türkmen dilinde salam nähili diýilýär?",
-  "Garagum çöli barada maglumat ber",
-];
 
 export function EmptyChat({ onSend, personaId, onPersonaChange }: EmptyChatProps) {
   const [proverb, setProverb] = useState(() => getRandomProverb());
