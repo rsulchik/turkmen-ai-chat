@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,10 +20,76 @@ const BASE_PROMPT = `Отвечай ТОЛЬКО на туркменском я�
 
 В конце КАЖДОГО ответа добавь раздел "💡 Maslahatlar" — 2-3 практичные идеи по теме (стартап-идея, способ заработать или сэкономить). Кратко, на туркменском.`;
 
+// Rate limit constants
+const SHORT_WINDOW_MS = 5 * 60 * 1000;
+const SHORT_LIMIT = 15;
+const LONG_WINDOW_MS = 24 * 60 * 60 * 1000;
+const LONG_LIMIT = 100;
+
+function getClientIp(req: Request): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "unknown";
+}
+
+async function checkRateLimit(supabase: any, ip: string): Promise<{ ok: boolean; reason?: string }> {
+  const now = Date.now();
+  const { data: row } = await supabase
+    .from("chat_rate_limits")
+    .select("*")
+    .eq("ip", ip)
+    .maybeSingle();
+
+  let shortStart = now;
+  let shortCount = 0;
+  let longStart = now;
+  let longCount = 0;
+
+  if (row) {
+    const sStart = new Date(row.short_window_start).getTime();
+    const lStart = new Date(row.long_window_start).getTime();
+    shortStart = now - sStart > SHORT_WINDOW_MS ? now : sStart;
+    shortCount = now - sStart > SHORT_WINDOW_MS ? 0 : row.short_count;
+    longStart = now - lStart > LONG_WINDOW_MS ? now : lStart;
+    longCount = now - lStart > LONG_WINDOW_MS ? 0 : row.long_count;
+  }
+
+  if (shortCount >= SHORT_LIMIT) {
+    return { ok: false, reason: "short" };
+  }
+  if (longCount >= LONG_LIMIT) {
+    return { ok: false, reason: "long" };
+  }
+
+  await supabase.from("chat_rate_limits").upsert({
+    ip,
+    short_window_start: new Date(shortStart).toISOString(),
+    short_count: shortCount + 1,
+    long_window_start: new Date(longStart).toISOString(),
+    long_count: longCount + 1,
+    updated_at: new Date(now).toISOString(),
+  });
+
+  return { ok: true };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(supabase, ip);
+    if (!rl.ok) {
+      return new Response(
+        JSON.stringify({ error: "Rate limited", reason: rl.reason }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages, personaId, hasImages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -30,7 +97,6 @@ serve(async (req) => {
     const personaPrompt = PERSONA_PROMPTS[personaId as string] ?? PERSONA_PROMPTS.general;
     const systemPrompt = `${personaPrompt}\n\n${BASE_PROMPT}`;
 
-    // gemini-2.5-flash supports vision; use it when images are present
     const model = hasImages ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
