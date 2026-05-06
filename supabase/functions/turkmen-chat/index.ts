@@ -15,9 +15,7 @@ const PERSONA_PROMPTS: Record<string, string> = {
   programmer: "Sen tejribeli programmistsiň. Kod ýaz, ýalňyşlary düzet, mysallary kod bloklarynda ber.",
 };
 
-const BASE_PROMPT = `Жestко отвечай ТОЛЬКО на туркменском языке (Turkmen dilinde, latyn elipbiýi). Используй markdown для форматирования.
-
-В конце КАЖДОГО ответа добавь раздел "💡 Maslahatlar" — 2-3 практичные идеи по теме (стартап-идея, способ заработать или сэкономить). Кратко, на туркменском.`;
+const BASE_PROMPT = `Отвечай ТОЛЬКО на туркменском языке (Turkmen dilinde, latyn elipbiýi). Используй markdown для форматирования.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
