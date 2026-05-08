@@ -1,10 +1,11 @@
-import { Send, Mic, MicOff, Paperclip, X } from "lucide-react";
+import { Send, Mic, MicOff, Paperclip, X, Square } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { toast } from "@/hooks/use-toast";
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void;
   isLoading: boolean;
+  onStop?: () => void;
 }
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -18,7 +19,7 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, onStop }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
@@ -188,13 +189,23 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               {isListening ? <MicOff size={16} /> : <Mic size={16} />}
             </button>
           )}
-          <button
-            onClick={handleSubmit}
-            disabled={(!input.trim() && images.length === 0) || isLoading}
-            className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-primary text-primary-foreground disabled:opacity-40 disabled:hover:shadow-none hover:shadow-emerald transition-all"
-          >
-            <Send size={16} />
-          </button>
+          {isLoading && onStop ? (
+            <button
+              onClick={onStop}
+              title="Generasiýany togtat"
+              className="absolute right-2 bottom-2 p-2 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-all animate-pulse"
+            >
+              <Square size={16} fill="currentColor" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={(!input.trim() && images.length === 0) || isLoading}
+              className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-primary text-primary-foreground disabled:opacity-40 disabled:hover:shadow-none hover:shadow-emerald transition-all"
+            >
+              <Send size={16} />
+            </button>
+          )}
         </div>
         <p className="text-center text-[11px] text-muted-foreground mt-2.5 tracking-wide">
           Made by <span className="text-accent">Resul Sopyyev</span> · CEO of <span className="text-accent">Sopyyev Software</span>
