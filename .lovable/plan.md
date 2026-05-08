@@ -1,69 +1,64 @@
-## Что меняем
+## Plan A — «Не терять чаты»
 
-### 1. Sidebar — drawer на мобильных и планшетах
-
-Сейчас sidebar становится постоянной панелью уже с `md:` (768px) — это слишком рано для устройств вроде iPad. Переключаем брейкпоинт на `lg:` (1024px), чтобы на телефонах **и** планшетах sidebar открывался drawer-ом с overlay, а постоянная панель появлялась только на десктопе.
-
-**Файлы:**
-- `src/components/ChatSidebar.tsx` — заменить все `md:` → `lg:` (классы `md:relative`, `md:z-auto`, `md:translate-x-0`, `md:hidden`, `hidden md:` и т.п.).
-- `src/pages/Index.tsx` — заменить `md:hidden` на `lg:hidden` у кнопки `Menu` и мобильного логотипа в header.
-
-Логика drawer уже корректна (overlay + transition + body scroll), нужно только сдвинуть точку.
+Три улучшения, которые сделают чат заметно надёжнее и удобнее.
 
 ---
 
-### 2. Rate limiting на edge function
+### 1. Сохранение истории чатов в `localStorage`
 
-Поскольку edge-функции stateless и могут холодно стартовать, in-memory Map ненадёжен. Используем **таблицу в Lovable Cloud** для хранения счётчиков по IP.
+Сейчас `useChat` хранит чаты только в памяти React — при перезагрузке всё пропадает.
 
-**Лимиты (предлагаю):**
-- 15 сообщений за 5 минут на IP
-- 100 сообщений за 24 часа на IP
+**Что делаем:**
+- При каждом изменении `chats` и `activeChatId` сохраняем их в `localStorage` (ключи `turkmen-ai:chats`, `turkmen-ai:active`).
+- При загрузке `useChat` читает их обратно (с корректным восстановлением `Date` для `createdAt`/`updatedAt`/`timestamp`).
+- Защита от переполнения: если суммарный размер превышает ~4 МБ, удаляем самые старые чаты (FIFO по `updatedAt`).
+- Картинки (data URL) тоже сохраняются, но учитываются в лимите.
 
-При превышении — `429` с понятным сообщением на туркменском в чат: «Köp haýyş iberildi, biraz garaşyň» (уже обрабатывается в `useChat`).
-
-**Миграция:** новая таблица
-```sql
-create table public.chat_rate_limits (
-  ip text not null,
-  window_start timestamptz not null default now(),
-  count int not null default 0,
-  primary key (ip)
-);
-alter table public.chat_rate_limits enable row level security;
--- Доступ только через service role из edge function;
--- никаких публичных policies не создаём (RLS блокирует анон-доступ).
-```
-
-**Edge function (`supabase/functions/turkmen-chat/index.ts`):**
-- В начале handler: достаём IP из `x-forwarded-for` (первый адрес) или `cf-connecting-ip`.
-- Создаём `supabase` клиент с `SUPABASE_SERVICE_ROLE_KEY` (секрет уже есть).
-- Логика sliding-window по IP:
-  - Читаем строку для IP.
-  - Если `now() - window_start > 5 минут` → сбрасываем `count=1, window_start=now()`.
-  - Иначе если `count >= 15` → возвращаем `429`.
-  - Иначе `count++` и upsert.
-- Дополнительно: считаем суточный счётчик отдельным запросом (можно второй колонкой `daily_count` + `daily_window_start`).
-
-Чтобы не плодить таблицы, расширяем схему:
-```sql
-create table public.chat_rate_limits (
-  ip text primary key,
-  short_window_start timestamptz not null default now(),
-  short_count int not null default 0,
-  long_window_start timestamptz not null default now(),
-  long_count int not null default 0
-);
-```
-
-**Заметка:** у Lovable Cloud пока нет специализированных rate-limit примитивов, поэтому это ad-hoc реализация. Для серьёзной защиты от ботов в будущем понадобится Cloudflare или подобное на уровне инфры. Сейчас этого достаточно, чтобы аноним не выжег весь AI-кредит за минуты.
+**Файлы:** `src/hooks/useChat.ts`.
 
 ---
 
-## Порядок работ
+### 2. Кнопка остановки генерации
 
-1. Применить миграцию `chat_rate_limits`.
-2. Обновить `turkmen-chat/index.ts`: добавить проверку IP перед вызовом AI gateway.
-3. Заменить `md:` → `lg:` в `ChatSidebar.tsx` и `Index.tsx`.
+Сейчас, если AI пишет долго или невпопад, прервать его нельзя — `fetch`-стрим читается до конца.
 
-Без новых зависимостей. После одобрения — переключаюсь в build-режим.
+**Что делаем:**
+- В `useChat` создаём `AbortController` на каждый `sendMessage`, передаём `signal` в `fetch`.
+- Сохраняем ссылку на контроллер в `useRef`, экспортируем функцию `stopGeneration()`.
+- В `ChatInput` во время `isLoading` кнопка отправки превращается в красную «■ Stop» (иконка `Square` из lucide-react).
+- При остановке: прерываем поток, оставляем уже сгенерированный текст как есть, добавляем в конец курсивную пометку *«⏹ togtadyldy»*.
+
+**Файлы:** `src/hooks/useChat.ts`, `src/components/ChatInput.tsx`, `src/pages/Index.tsx` (прокинуть `stopGeneration`).
+
+---
+
+### 3. Авто-прокрутка с кнопкой «вниз»
+
+Сейчас прокрутка всегда едет к последнему сообщению — даже если пользователь сам отскроллил наверх читать. Это раздражает.
+
+**Что делаем:**
+- В `Index.tsx` отслеживаем позицию скролла контейнера сообщений.
+- Если пользователь у самого низа (в пределах ~100 px) — авто-скролл при новых токенах работает как сейчас.
+- Если пользователь отскроллил вверх — авто-скролл выключается, появляется плавающая кнопка «↓ Aşak» в правом нижнем углу над `ChatInput`.
+- Клик по кнопке — плавный скролл вниз и возврат к авто-режиму.
+
+**Файлы:** `src/pages/Index.tsx` (новый `useRef` на скролл-контейнер + локальный стейт `isAtBottom`).
+
+---
+
+### Технические детали
+
+- Никаких новых npm-зависимостей — всё на встроенных API (`localStorage`, `AbortController`, scroll events).
+- Без изменений в edge function и базе данных.
+- `localStorage` работает только в браузере — везде проверяем `typeof window !== "undefined"`.
+- `AbortError` отдельно отлавливаем в `catch`, чтобы не показывать как «səwlik».
+
+---
+
+### Порядок работ
+
+1. Persist чатов в `localStorage` + восстановление при загрузке.
+2. `AbortController` + кнопка Stop.
+3. Умная авто-прокрутка + кнопка «↓».
+
+После одобрения — переключаюсь в build-режим.
