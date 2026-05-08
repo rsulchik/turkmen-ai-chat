@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Chat, Message } from "@/types/chat";
 import { DEFAULT_PERSONA_ID } from "@/data/personas";
 
@@ -7,22 +7,85 @@ function generateId() {
 }
 
 const PERSONA_KEY = "turkmen-ai:persona";
+const CHATS_KEY = "turkmen-ai:chats";
+const ACTIVE_KEY = "turkmen-ai:active";
+const MAX_STORAGE_BYTES = 4 * 1024 * 1024;
 
 function loadPersona(): string {
   if (typeof window === "undefined") return DEFAULT_PERSONA_ID;
   return localStorage.getItem(PERSONA_KEY) || DEFAULT_PERSONA_ID;
 }
 
+function reviveChats(raw: string): Chat[] {
+  try {
+    const parsed = JSON.parse(raw) as any[];
+    return parsed.map((c) => ({
+      ...c,
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
+      messages: (c.messages || []).map((m: any) => ({
+        ...m,
+        timestamp: new Date(m.timestamp),
+      })),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function loadChats(): { chats: Chat[]; activeId: string | null } {
+  if (typeof window === "undefined") return { chats: [], activeId: null };
+  const raw = localStorage.getItem(CHATS_KEY);
+  const chats = raw ? reviveChats(raw) : [];
+  const activeId = localStorage.getItem(ACTIVE_KEY);
+  return { chats, activeId: activeId && chats.some((c) => c.id === activeId) ? activeId : null };
+}
+
+function persistChats(chats: Chat[]) {
+  if (typeof window === "undefined") return;
+  try {
+    let trimmed = chats;
+    let serialized = JSON.stringify(trimmed);
+    // FIFO drop oldest by updatedAt while too big
+    while (serialized.length > MAX_STORAGE_BYTES && trimmed.length > 1) {
+      const sorted = [...trimmed].sort(
+        (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+      );
+      const oldest = sorted[0];
+      trimmed = trimmed.filter((c) => c.id !== oldest.id);
+      serialized = JSON.stringify(trimmed);
+    }
+    localStorage.setItem(CHATS_KEY, serialized);
+  } catch {
+    // ignore quota errors
+  }
+}
+
 export function useChat() {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const initial = typeof window !== "undefined" ? loadChats() : { chats: [], activeId: null };
+  const [chats, setChats] = useState<Chat[]>(initial.chats);
+  const [activeChatId, setActiveChatId] = useState<string | null>(initial.activeId);
   const [isLoading, setIsLoading] = useState(false);
   const [personaId, setPersonaIdState] = useState<string>(loadPersona);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Persist chats whenever they change
+  useEffect(() => {
+    persistChats(chats);
+  }, [chats]);
+
+  // Persist active chat id
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (activeChatId) localStorage.setItem(ACTIVE_KEY, activeChatId);
+      else localStorage.removeItem(ACTIVE_KEY);
+    } catch {}
+  }, [activeChatId]);
 
   const setPersonaId = useCallback((id: string) => {
     setPersonaIdState(id);
     try { localStorage.setItem(PERSONA_KEY, id); } catch {}
-    // also bind to active chat if it exists and has no messages yet
     setChats((prev) => prev.map((c) =>
       c.id === activeChatId && c.messages.length === 0 ? { ...c, personaId: id } : c
     ));
@@ -53,6 +116,13 @@ export function useChat() {
     },
     [activeChatId]
   );
+
+  const stopGeneration = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string, images?: string[]) => {
@@ -86,12 +156,15 @@ export function useChat() {
       );
 
       setIsLoading(true);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const assistantId = generateId();
+      let assistantStarted = false;
 
       try {
         const currentChat = chats.find((c) => c.id === chatId);
         const chatPersona = currentChat?.personaId || personaId;
 
-        // Build multimodal-aware history
         const history = (currentChat?.messages || []).map((m) => {
           if (m.role === "user" && m.images && m.images.length) {
             const parts: any[] = m.images.map((url) => ({
@@ -131,6 +204,7 @@ export function useChat() {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ messages: allMessages, personaId: chatPersona, hasImages }),
+          signal: controller.signal,
         });
 
         if (!resp.ok || !resp.body) {
@@ -143,7 +217,6 @@ export function useChat() {
         const decoder = new TextDecoder();
         let textBuffer = "";
         let assistantContent = "";
-        const assistantId = generateId();
 
         setChats((prev) =>
           prev.map((c) =>
@@ -159,6 +232,7 @@ export function useChat() {
               : c
           )
         );
+        assistantStarted = true;
 
         let streamDone = false;
         while (!streamDone) {
@@ -204,21 +278,45 @@ export function useChat() {
           }
         }
       } catch (err: any) {
-        const errorMessage: Message = {
-          id: generateId(),
-          role: "assistant",
-          content: `⚠️ ${err.message || "Näbelli säwlik ýüze çykdy."}`,
-          timestamp: new Date(),
-        };
-        setChats((prev) =>
-          prev.map((c) =>
-            c.id === chatId
-              ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() }
-              : c
-          )
-        );
+        if (err?.name === "AbortError") {
+          // Mark assistant message as stopped
+          if (assistantStarted) {
+            setChats((prev) =>
+              prev.map((c) =>
+                c.id === chatId
+                  ? {
+                      ...c,
+                      messages: c.messages.map((m) =>
+                        m.id === assistantId
+                          ? {
+                              ...m,
+                              content: (m.content || "") + (m.content ? "\n\n" : "") + "_⏹ togtadyldy_",
+                            }
+                          : m
+                      ),
+                    }
+                  : c
+              )
+            );
+          }
+        } else {
+          const errorMessage: Message = {
+            id: generateId(),
+            role: "assistant",
+            content: `⚠️ ${err.message || "Näbelli säwlik ýüze çykdy."}`,
+            timestamp: new Date(),
+          };
+          setChats((prev) =>
+            prev.map((c) =>
+              c.id === chatId
+                ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() }
+                : c
+            )
+          );
+        }
       } finally {
         setIsLoading(false);
+        abortRef.current = null;
       }
     },
     [activeChatId, chats, createChat, personaId]
@@ -235,5 +333,6 @@ export function useChat() {
     deleteChat,
     setActiveChatId,
     sendMessage,
+    stopGeneration,
   };
 }

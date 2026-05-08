@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { Menu, Share2 } from "lucide-react";
+import { Menu, Share2, ArrowDown } from "lucide-react";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -28,15 +28,32 @@ const Index = () => {
     deleteChat,
     setActiveChatId,
     sendMessage,
+    stopGeneration,
   } = useChat();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeChat?.messages, isLoading, isAtBottom]);
+
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setIsAtBottom(distance < 100);
+  };
+
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChat?.messages, isLoading]);
+    setIsAtBottom(true);
+  };
 
   const canShare = !!activeChat && activeChat.messages.length > 0;
 
@@ -122,7 +139,11 @@ const Index = () => {
         {!activeChat || activeChat.messages.length === 0 ? (
           <EmptyChat onSend={sendMessage} personaId={personaId} onPersonaChange={setPersonaId} />
         ) : (
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto scrollbar-thin"
+          >
             <div className="max-w-3xl mx-auto">
               {activeChat.messages.map((msg) => (
                 <ChatMessage key={msg.id} message={msg} />
@@ -135,7 +156,18 @@ const Index = () => {
           </div>
         )}
 
-        <ChatInput onSend={sendMessage} isLoading={isLoading} />
+        {!isAtBottom && activeChat && activeChat.messages.length > 0 && (
+          <button
+            onClick={scrollToBottom}
+            title="Aşak"
+            aria-label="Aşak"
+            className="absolute bottom-28 right-6 z-20 p-2.5 rounded-full bg-secondary/90 backdrop-blur-md border border-accent/30 text-foreground shadow-lg hover:bg-accent hover:text-accent-foreground transition-all"
+          >
+            <ArrowDown size={18} />
+          </button>
+        )}
+
+        <ChatInput onSend={sendMessage} isLoading={isLoading} onStop={stopGeneration} />
       </div>
     </div>
   );
