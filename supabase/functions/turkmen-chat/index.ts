@@ -91,19 +91,19 @@ serve(async (req) => {
     }
 
     const { messages, personaId, hasImages } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    const API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!API_KEY) throw new Error("API key is not configured");
 
     const personaPrompt = PERSONA_PROMPTS[personaId as string] ?? PERSONA_PROMPTS.general;
     const systemPrompt = `${personaPrompt}\n\n${BASE_PROMPT}`;
 
-    // OpenAI gpt-4o-mini supports vision and text in one model
-    const model = "gpt-4o-mini";
+    // Groq (OpenAI-compatible). Llama 3.3 70B — быстрый и сильный.
+    const model = hasImages ? "llama-3.2-11b-vision-preview" : "llama-3.3-70b-versatile";
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
