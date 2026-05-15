@@ -91,18 +91,19 @@ serve(async (req) => {
     }
 
     const { messages, personaId, hasImages } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
     const personaPrompt = PERSONA_PROMPTS[personaId as string] ?? PERSONA_PROMPTS.general;
     const systemPrompt = `${personaPrompt}\n\n${BASE_PROMPT}`;
 
-    const model = hasImages ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
+    // OpenAI gpt-4o-mini supports vision and text in one model
+    const model = "gpt-4o-mini";
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
